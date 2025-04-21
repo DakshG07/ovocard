@@ -8,6 +8,6 @@ export default defineConfig({
       "Cross-Origin-Opener-Policy": "unsafe-none",
       "Cross-Origin-Embedder-Policy": "unsafe-none",
     },
-    allowedHosts: ["localhost", "127.0.0.1", "92da819f518019.lhr.life"],
+    allowedHosts: ["localhost", "127.0.0.1"],
   },
 });
