@@ -24,7 +24,7 @@
                 .select("*")
                 .eq("user_id", user.id)
                 .order("created_at", { ascending: false });
-            
+
             if (error) {
                 console.error("Error fetching decks:", error);
             } else {
@@ -36,12 +36,14 @@
 </script>
 
 <div class="dashboard-container">
-    <h1>Dashboard</h1>
-    {#if user}
-        <p>Welcome back, {user.user_metadata?.name || user.email}!</p>
-    {:else}
-        <p>Loading your information...</p>
-    {/if}
+    <div class="dashboard-header">
+        <h1>Dashboard</h1>
+        {#if user}
+            <p>Welcome back, {user.user_metadata?.name || user.email}!</p>
+        {:else}
+            <p>Loading your information...</p>
+        {/if}
+    </div>
 
     <div class="dashboard-content">
         {#if loading}
@@ -56,7 +58,9 @@
                         {#if deck.description}
                             <p class="deck-description">{deck.description}</p>
                         {:else}
-                            <p class="deck-description no-description">No description</p>
+                            <p class="deck-description no-description">
+                                No description
+                            </p>
                         {/if}
                         <div class="deck-meta">
                             <span class="visibility-badge">
@@ -75,7 +79,9 @@
         {:else}
             <div class="empty-state">
                 <h2>Your vocabulary dashboard</h2>
-                <p>Your vocabulary sets will appear here once you create them.</p>
+                <p>
+                    Your vocabulary sets will appear here once you create them.
+                </p>
                 <a href="/create" class="create-button">Create First Set</a>
             </div>
         {/if}
@@ -87,6 +93,11 @@
         width: 100%;
         max-width: 1000px;
         padding: 20px;
+        margin: 0 auto;
+    }
+
+    .dashboard-header {
+        padding-top: 20px;
     }
 
     h1 {
@@ -167,7 +178,9 @@
         padding: 20px;
         text-decoration: none;
         color: inherit;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        transition:
+            transform 0.2s ease,
+            box-shadow 0.2s ease;
         display: flex;
         flex-direction: column;
         min-height: 120px;
@@ -181,6 +194,7 @@
     .deck-card h3 {
         margin: 0 0 10px 0;
         font-size: 1.2rem;
+        word-break: break-word;
     }
 
     .deck-description {
@@ -201,6 +215,8 @@
         align-items: center;
         font-size: 0.8rem;
         margin-top: auto;
+        flex-wrap: wrap;
+        gap: 5px;
     }
 
     .visibility-badge {
@@ -216,6 +232,29 @@
 
     .create-new {
         text-align: center;
-        margin-top: 20p0;
+        margin-top: 20px;
+    }
+
+    /* Mobile optimizations */
+    @media (max-width: 768px) {
+        .dashboard-container {
+            padding: 15px;
+        }
+
+        .dashboard-header {
+            padding-top: 30px; /* Increased padding for mobile */
+        }
+
+        h1 {
+            font-size: 1.8rem;
+        }
+
+        .decks-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .deck-card {
+            min-height: 100px;
+        }
     }
 </style>
