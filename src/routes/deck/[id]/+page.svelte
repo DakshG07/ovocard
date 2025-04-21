@@ -83,6 +83,10 @@
      * Moves to the next card
      */
     function nextCard() {
+        let index = currentCardIndex;
+        setTimeout(() => {
+            flippedStates[index] = false;
+        }, 150);
         if (currentCardIndex < cards.length - 1) {
             currentCardIndex++;
         } else {
@@ -95,6 +99,10 @@
      * Moves to the previous card
      */
     function prevCard() {
+        let index = currentCardIndex;
+        setTimeout(() => {
+            flippedStates[index] = false;
+        }, 150);
         if (currentCardIndex > 0) {
             currentCardIndex--;
         } else {
@@ -244,18 +252,6 @@
             </div>
         {:else}
             <div class="flashcard-container">
-                <div class="card-progress">
-                    <div
-                        class="progress-bar"
-                        style="width: {((currentCardIndex + 1) / cards.length) *
-                            100}%"
-                    ></div>
-                </div>
-
-                <div class="card-counter">
-                    {currentCardIndex + 1} / {cards.length}
-                </div>
-
                 <div
                     class="flashcards-row {cards.length === 1
                         ? 'single-card'
@@ -310,6 +306,19 @@
                             </div>
                         </div>
                     {/each}
+                </div>
+            </div>
+            <div class="progress-container">
+                <div class="card-progress">
+                    <div
+                        class="progress-bar"
+                        style="width: {((currentCardIndex + 1) / cards.length) *
+                            100}%"
+                    ></div>
+                </div>
+
+                <div class="card-counter">
+                    {currentCardIndex + 1} / {cards.length}
                 </div>
             </div>
 
@@ -406,7 +415,7 @@
         color: #555;
         margin-bottom: 20px;
     }
-    
+
     .deck-date {
         color: #777;
         font-size: 0.9rem;
@@ -437,7 +446,6 @@
     .card-progress {
         height: 4px;
         background-color: #eee;
-        margin-bottom: 10px;
         border-radius: 2px;
         overflow: hidden;
     }
@@ -452,7 +460,8 @@
         text-align: center;
         font-size: 0.9rem;
         color: #666;
-        margin-bottom: 20px;
+        margin-top: 8px;
+        margin-bottom: 10px;
     }
 
     .flashcards-row {
@@ -569,7 +578,7 @@
         justify-content: center;
         gap: 20px;
         align-items: center;
-        margin-top: 30px;
+        margin-top: 20px;
     }
 
     .nav-button {
