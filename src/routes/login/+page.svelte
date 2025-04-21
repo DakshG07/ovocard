@@ -10,14 +10,6 @@
     let rememberMe = false;
     let errorMessage = "";
 
-    // Set the redirect URI based on development or production environment
-    const isDev =
-        process.env.NODE_ENV === "development" ||
-        window.location.hostname === "localhost";
-    const redirectUri = isDev
-        ? "http://localhost:5173/login"
-        : "https://vocard.github.io/login";
-
     onMount(() => {
         setupGoogleAuth("signin_with", returnToDash);
         ready = true;
