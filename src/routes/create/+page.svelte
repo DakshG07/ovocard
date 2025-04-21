@@ -15,13 +15,22 @@
         const { data: authData } = await supabase.auth.getUser();
         if (authData && authData.user) {
             user = authData.user;
+            data.deckName = "";
+            data.deckDescription = "";
+            data.isPublic = true;
+            data.isSubmitting = false;
+            data.errorMessage = "";
+            data.successMessage = "";
+            data.cards = [
+                { id: 1, term: "", definition: "" },
+                { id: 2, term: "", definition: "" },
+            ];
             ready = true;
         } else {
             // Redirect to login if not authenticated
             goto("/login");
         }
     });
-
 
     $inspect(data.deckName);
 
@@ -50,7 +59,8 @@
         }
 
         if (validCards.length !== data.cards.length) {
-            data.errorMessage = "All cards must have both a term and definition";
+            data.errorMessage =
+                "All cards must have both a term and definition";
             return;
         }
 
