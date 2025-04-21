@@ -3,7 +3,7 @@
 </script>
 
 <div class="container">
-    <h1>vocard.</h1>
+    <h1>ovocard.</h1>
     <p>Vocabulary made easy.</p>
     <a href="/signup"><button class="button dark-button">Sign Up</button></a>
     <a href="/login"><button class="button light-button">Log In</button></a>

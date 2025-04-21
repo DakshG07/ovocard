@@ -11,12 +11,12 @@
 </script>
 
 <svelte:head>
-    <title>vocard.</title>
+    <title>ovocard.</title>
 </svelte:head>
 
 <nav>
     <div class="nav-container">
-        <div class="logo"><a href="/">vocard.</a></div>
+        <div class="logo"><a href="/">ovocard.</a></div>
         <div class="nav-links">
             <a href="/">Home</a>
             {#if isAuthenticated === null}{:else if isAuthenticated}
