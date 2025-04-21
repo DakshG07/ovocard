@@ -96,10 +96,6 @@
         margin: 0 auto;
     }
 
-    .dashboard-header {
-        padding-top: 20px;
-    }
-
     h1 {
         font-size: 2rem;
         margin-bottom: 0.5rem;
@@ -239,10 +235,6 @@
     @media (max-width: 768px) {
         .dashboard-container {
             padding: 15px;
-        }
-
-        .dashboard-header {
-            padding-top: 30px; /* Increased padding for mobile */
         }
 
         h1 {

@@ -7,13 +7,43 @@
 
     /** @type {boolean | null} */
     let isAuthenticated = $state(null);
+    /** @type {boolean} */
+    let isMobile = $state(false);
 
-    onMount(async () => {
+    // Check if device is mobile
+    const checkMobile = () => {
+        isMobile = window.innerWidth <= 768;
+    };
+
+    // Handle authentication check
+    async function checkAuth() {
         isAuthenticated = await checkAuthStatus();
+    }
+
+    // Setup mobile detection
+    function setupMobileDetection() {
+        // Initial check
+        checkMobile();
+        
+        // Add event listener
+        window.addEventListener('resize', checkMobile);
+        
+        // Return cleanup function
+        return () => {
+            window.removeEventListener('resize', checkMobile);
+        };
+    }
+
+    onMount(() => {
+        // Check authentication
+        checkAuth();
+        
+        // Setup mobile detection and get cleanup function
+        return setupMobileDetection();
     });
 </script>
 
-<main class={isAuthenticated !== null ? "visible" : ""}>
+<main class={isAuthenticated !== null ? "visible" : ""} class:mobile={isMobile && isAuthenticated}>
     {#if isAuthenticated}
         <DashboardPage />
     {:else}
@@ -42,5 +72,12 @@
 
     main.visible {
         opacity: 1;
+    }
+    
+    /* Remove vertical centering for mobile when authenticated */
+    main.mobile {
+        align-items: flex-start;
+        height: auto;
+        min-height: calc(100vh - 60px);
     }
 </style>
