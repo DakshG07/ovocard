@@ -78,7 +78,11 @@
         if (loading) return;
 
         // Prevent default behavior for arrow keys and space to avoid page scrolling
-        if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(e.key)) {
+        if (
+            ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(
+                e.key,
+            )
+        ) {
             e.preventDefault();
         }
 
@@ -131,7 +135,10 @@
             </p>
 
             <div class="deck-meta">
-                <span>{cards.length} cards</span>
+                <span
+                    >{cards.length}
+                    {cards.length === 1 ? "card" : "cards"}</span
+                >
             </div>
         </div>
 
