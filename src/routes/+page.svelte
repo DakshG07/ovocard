@@ -24,26 +24,29 @@
     function setupMobileDetection() {
         // Initial check
         checkMobile();
-        
+
         // Add event listener
-        window.addEventListener('resize', checkMobile);
-        
+        window.addEventListener("resize", checkMobile);
+
         // Return cleanup function
         return () => {
-            window.removeEventListener('resize', checkMobile);
+            window.removeEventListener("resize", checkMobile);
         };
     }
 
     onMount(() => {
         // Check authentication
         checkAuth();
-        
+
         // Setup mobile detection and get cleanup function
         return setupMobileDetection();
     });
 </script>
 
-<main class={isAuthenticated !== null ? "visible" : ""} class:mobile={isMobile && isAuthenticated}>
+<main
+    class={isAuthenticated !== null ? "visible" : ""}
+    class:mobile={isMobile && isAuthenticated}
+>
     {#if isAuthenticated}
         <DashboardPage />
     {:else}
@@ -52,15 +55,6 @@
 </main>
 
 <style>
-    :global(body) {
-        margin: 0;
-        font-family:
-            -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans,
-            Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-        background-color: white;
-        color: black;
-    }
-
     main {
         height: calc(100vh - 60px);
         display: flex;
@@ -73,7 +67,7 @@
     main.visible {
         opacity: 1;
     }
-    
+
     /* Remove vertical centering for mobile when authenticated */
     main.mobile {
         align-items: flex-start;

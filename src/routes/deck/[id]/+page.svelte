@@ -4,6 +4,7 @@
     import { slide, fade } from "svelte/transition";
     import { goto } from "$app/navigation";
     import { supabase } from "$lib/supabase";
+    import { formatRelativeDate } from "$lib/utils";
 
     /** @typedef {import('$lib/types').Deck} Deck */
     /** @typedef {import('$lib/types').Card} Card */
@@ -20,13 +21,48 @@
     let currentCardIndex = $state(0);
     /** @type {boolean[]} */
     let flippedStates = $state([]);
+    /** @type {number} */
+    let windowWidth = $state(769);
+    /** @type {boolean} */
+    let isMobile = $derived(windowWidth <= 768);
 
-    $inspect(flippedStates);
+    // Touch/drag state
+    let touchStartX = $state(0);
+    let touchEndX = $state(0);
+    let isDragging = $state(false);
+    let dragOffset = $state(0);
+    /** @type {HTMLDivElement | null} */
+    let cardContainer = $state(null);
 
-    onMount(async () => {
-        console.log("Deck ID:", deckId);
-        console.log("Deck:", deck);
-        console.log("Cards:", cards);
+    // Format creation date
+    let formattedDate = formatRelativeDate(deck.created_at);
+
+    onMount(() => {
+        // Initialize flipped states
+        flippedStates = new Array(cards.length).fill(false);
+
+        // Get initial window width
+        const updateWindowWidth = () => {
+            windowWidth = window.innerWidth;
+        };
+
+        // Initial check
+        updateWindowWidth();
+
+        // Add event listener for window resize
+        window.addEventListener("resize", updateWindowWidth);
+
+        // Check authentication status
+        checkAuth();
+
+        // Return cleanup function
+        return () => {
+            window.removeEventListener("resize", updateWindowWidth);
+        };
+    });
+
+    // Handle authentication check separately
+    async function checkAuth() {
         // Check if user owns the deck
         const {
             data: { user },
@@ -34,15 +70,12 @@
         if (user && deck.user_id === user.id) {
             isOwner = true;
         }
-        // Initialize flipped states
-        flippedStates = new Array(cards.length).fill(false);
-    });
+    }
 
     /**
      * Flips the current card
      */
     function flipCard() {
-        console.log("Flipping card");
         flippedStates[currentCardIndex] = !flippedStates[currentCardIndex];
     }
 
@@ -104,6 +137,56 @@
                 break;
         }
     }
+
+    /**
+     * Handle touch start event for card dragging
+     * @param {TouchEvent} event - The touch event
+     */
+    function handleTouchStart(event) {
+        if (!isMobile) return;
+
+        touchStartX = event.touches[0].clientX;
+        isDragging = true;
+        dragOffset = 0;
+    }
+
+    /**
+     * Handle touch move event for card dragging
+     * @param {TouchEvent} event - The touch event
+     */
+    function handleTouchMove(event) {
+        if (!isMobile || !isDragging) return;
+
+        touchEndX = event.touches[0].clientX;
+        dragOffset = touchEndX - touchStartX;
+
+        // Limit drag to prevent excessive movement
+        if (dragOffset > 100) dragOffset = 100;
+        if (dragOffset < -100) dragOffset = -100;
+    }
+
+    /**
+     * Handle touch end event for card dragging
+     */
+    function handleTouchEnd() {
+        if (!isMobile || !isDragging) return;
+
+        isDragging = false;
+
+        // Determine if swipe was significant enough to change cards
+        const swipeThreshold = 50;
+
+        if (dragOffset > swipeThreshold) {
+            // Swiped right - go to previous card
+            prevCard();
+        } else if (dragOffset < -swipeThreshold) {
+            // Swiped left - go to next card
+            nextCard();
+        }
+
+        // Reset drag offset
+        dragOffset = 0;
+    }
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -125,13 +208,17 @@
             <div class="deck-title-row">
                 <h1>{deck.name}</h1>
                 {#if isOwner}
-                    <a href="/deck/{deckId}/edit" class="edit-button"
-                        >Edit Deck</a
+                    <a
+                        href="/deck/{deckId}/edit"
+                        class="edit-button desktop-only">Edit Deck</a
                     >
                 {/if}
             </div>
             <p class="deck-description">
                 {deck.description || "No description provided"}
+                {#if formattedDate}
+                    <span class="deck-date"> - <i>{formattedDate}</i></span>
+                {/if}
             </p>
 
             <div class="deck-meta">
@@ -139,6 +226,12 @@
                     >{cards.length}
                     {cards.length === 1 ? "card" : "cards"}</span
                 >
+                {#if isOwner}
+                    <a
+                        href="/deck/{deckId}/edit"
+                        class="edit-button mobile-only">Edit Deck</a
+                    >
+                {/if}
             </div>
         </div>
 
@@ -167,14 +260,22 @@
                     class="flashcards-row {cards.length === 1
                         ? 'single-card'
                         : ''}"
-                    style="transform: translateX({-currentCardIndex * 520}px)"
+                    style="transform: translateX({isMobile
+                        ? -currentCardIndex * (windowWidth - 20) +
+                          dragOffset +
+                          'px'
+                        : -currentCardIndex * 520 + 'px'})"
+                    bind:this={cardContainer}
+                    ontouchstart={handleTouchStart}
+                    ontouchmove={handleTouchMove}
+                    ontouchend={handleTouchEnd}
                 >
                     {#each cards as card, i}
                         <!-- Flashcard -->
                         <!-- svelte-ignore a11y_click_events_have_key_events -->
                         <!-- svelte-ignore a11y_no_static_element_interactions -->
                         <div
-                            class="flashcard {i === currentCardIndex
+                            class="flashcard {isMobile || i === currentCardIndex
                                 ? 'active'
                                 : ''} {flippedStates[i] ? 'flipped' : ''}"
                             onclick={flipCard}
@@ -184,13 +285,25 @@
                                     <div class="card-content">
                                         {card?.term || ""}
                                     </div>
-                                    <div class="card-hint">Click to flip</div>
+                                    <div
+                                        class="card-hint"
+                                        style="opacity: {flippedStates[i]
+                                            ? 0
+                                            : 1}"
+                                    >
+                                        Click to flip
+                                    </div>
                                 </div>
                                 <div class="card-back">
                                     <div class="card-content">
                                         {card?.definition || ""}
                                     </div>
-                                    <div class="card-hint">
+                                    <div
+                                        class="card-hint"
+                                        style="opacity: {flippedStates[i]
+                                            ? 1
+                                            : 0}"
+                                    >
                                         Click to flip back
                                     </div>
                                 </div>
@@ -217,7 +330,7 @@
                 </button>
             </div>
 
-            <div class="keyboard-shortcuts">
+            <div class="keyboard-shortcuts desktop-only">
                 <p>Keyboard shortcuts: Space/↑/↓ (flip), ←/→ (navigate)</p>
             </div>
         {/if}
@@ -292,6 +405,11 @@
     .deck-description {
         color: #555;
         margin-bottom: 20px;
+    }
+    
+    .deck-date {
+        color: #777;
+        font-size: 0.9rem;
     }
 
     .deck-meta {
@@ -414,6 +532,27 @@
         overflow-wrap: break-word;
         word-break: break-word;
         max-width: 100%;
+        max-height: 80%;
+        overflow-y: auto;
+        padding: 10px;
+        /* Add custom scrollbar styling */
+        scrollbar-width: thin;
+        scrollbar-color: #aaa #f0f0f0;
+    }
+
+    /* Webkit scrollbar styling */
+    .card-content::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .card-content::-webkit-scrollbar-track {
+        background: #f0f0f0;
+        border-radius: 3px;
+    }
+
+    .card-content::-webkit-scrollbar-thumb {
+        background-color: #aaa;
+        border-radius: 3px;
     }
 
     .card-hint {
@@ -421,6 +560,8 @@
         bottom: 15px;
         font-size: 0.8rem;
         color: #aaa;
+        z-index: 2;
+        transition: opacity 0.2s ease;
     }
 
     .card-navigation {
@@ -459,10 +600,22 @@
         margin-top: 30px;
     }
 
+    .edit-button:hover {
+        background-color: #000;
+        color: #fff;
+    }
+
+    /* Mobile-specific classes */
+    .mobile-only {
+        display: none;
+    }
+
     /* Responsive adjustments */
     @media (max-width: 768px) {
         .flashcard {
             height: 250px;
+            width: 100%;
+            max-width: calc(100vw - 40px);
         }
 
         .card-content {
@@ -472,6 +625,33 @@
         .nav-button {
             width: 40px;
             height: 40px;
+        }
+
+        .desktop-only {
+            display: none;
+        }
+
+        .mobile-only {
+            display: inline-block;
+        }
+
+        .deck-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .flashcards-row {
+            padding-left: 0;
+            width: 100%;
+        }
+
+        .flashcards-row.single-card {
+            justify-content: center;
+        }
+
+        main {
+            overflow-x: hidden;
         }
     }
 
@@ -491,10 +671,5 @@
         text-decoration: none;
         font-size: 0.9rem;
         transition: all 0.2s ease;
-    }
-
-    .edit-button:hover {
-        background-color: #000;
-        color: #fff;
     }
 </style>

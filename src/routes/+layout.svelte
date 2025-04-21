@@ -36,13 +36,20 @@
     </div>
 </nav>
 
-{@render children()}
+<div class="content-wrapper">
+    {@render children()}
+</div>
 
 <style>
     nav {
         width: 100%;
         height: 50px;
         border-bottom: 1px solid #eee;
+        position: fixed;
+        top: 0;
+        left: 0;
+        background-color: white;
+        z-index: 1000;
     }
 
     .nav-container {
@@ -97,5 +104,9 @@
     .logo a {
         text-decoration: none;
         color: black;
+    }
+    
+    .content-wrapper {
+        padding-top: 50px;
     }
 </style>
