@@ -139,10 +139,13 @@
 {#if isComplete}
     <div
         class="submit-container"
-        transition:fly={{
+        in:fly={{
             duration: 200,
             y: 20,
             easing: (t) => --t * t * t + 1,
+        }}
+        out:fly={{
+            x: -40 * term.length,
         }}
     >
         <button
