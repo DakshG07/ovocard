@@ -339,6 +339,12 @@
                 </button>
             </div>
 
+            <div class="learn-button-container">
+                <a href="/deck/{deckId}/learn" class="learn-button">
+                    Learn Mode
+                </a>
+            </div>
+
             <div class="keyboard-shortcuts desktop-only">
                 <p>Keyboard shortcuts: Space/↑/↓ (flip), ←/→ (navigate)</p>
             </div>
@@ -600,6 +606,36 @@
         background-color: #f5f5f5;
         border-color: #ccc;
         transform: scale(1.05);
+    }
+
+    .learn-button-container {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+    }
+
+    .learn-button {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+        border: 2px solid #4caf50;
+        border-radius: 6px;
+        padding: 10px 20px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .learn-button:hover {
+        background-color: #b7d6b8;
+        border-color: #2e7d32;
+        transform: translateY(-2px);
+    }
+
+    .learn-button:active {
+        transform: translateY(2px);
     }
 
     .keyboard-shortcuts {

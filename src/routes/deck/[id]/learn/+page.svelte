@@ -1,39 +1,126 @@
 <script>
+    import { onMount } from "svelte";
     import { page } from "$app/state";
+    import { goto } from "$app/navigation";
     import TextInput from "$lib/components/TextInput.svelte";
+    import { fade, fly } from "svelte/transition";
 
-    // Get deck ID from the page store
-    let { deckId } = page.data;
+    /** @typedef {import("$lib/types").Card} Card */
+    /** @typedef {{ term: string, definition: string, hints: number }} Word */
 
-    // Sample data for now (will be replaced with actual deck data later)
-    const sampleTerm = "incredible";
-    const sampleDefinition =
-        "So extraordinary as to seem impossible; unbelievable.";
+    let { deck, cards, deckId } = page.data;
 
-    // State for the learn mode
+    // Learn mode state
+    /** @type {Word[]} */
+    let words = $state(
+        cards.map((/** @type {Card} */ card) => {
+            return {
+                term: card.term,
+                definition: card.definition,
+                hints: card.term.length,
+            };
+        }),
+    );
+    /** @type {Word|null} */
+    let currentWord = $state(null);
     let isCorrect = $state(false);
-    let showResult = $state(false);
+    let showDialog = $state(false);
+    /** @type {boolean} */
+    let isComplete = $state(false);
+    /** @type {number} */
+    let progress = $state(0);
+    /** @type {number} */
+    const totalHints = cards.reduce(
+        (/** @type {number} */ sum, /** @type {Card} */ card) =>
+            sum + card.term.length,
+        0,
+    );
 
-    /**
-     * Handle when the user completes the input
-     * @param {CustomEvent} event - The complete event from TextInput
-     */
-    function handleComplete(event) {
-        const userAnswer = event.detail.value.toLowerCase();
-        isCorrect = userAnswer === sampleTerm.toLowerCase();
-        showResult = true;
+    onMount(() => {
+        console.log(totalHints);
+        // Pick first word
+        pickWord();
+    });
+
+    $inspect(progress);
+
+    function pickWord() {
+        if (words.length === 0) {
+            isComplete = true;
+            return;
+        }
+        const max = Math.min(...words.map((w) => w.term.length - w.hints));
+        const availableWords = words.filter(
+            (w) => w.term.length - w.hints === max,
+        );
+        let idx = Math.floor(Math.random() * availableWords.length);
+        // Make sure the selected word is different from the current one
+        if (currentWord && availableWords.length > 1) {
+            while (availableWords[idx] === currentWord) {
+                idx = Math.floor(Math.random() * availableWords.length);
+            }
+        }
+        let word = availableWords[idx];
+        // Remove finished words
+        words = words.filter((w) => w.hints >= 0);
+        currentWord = word;
     }
 
     /**
-     * Move to the next card
+     * Handle submission from TextInput
+     * @param {string} word - The submitted word
      */
-    function nextCard() {
-        // Reset state for the next card
-        showResult = false;
-        isCorrect = false;
+    function handleSubmit(word) {
+        if (!currentWord) return;
+        console.log(word);
 
-        // In the future, this will load the next card from the deck
-        console.log("Moving to next card");
+        const isAnswerCorrect =
+            word.toLowerCase() === currentWord.term.toLowerCase();
+
+        // Show result dialog
+        isCorrect = isAnswerCorrect;
+        showDialog = true;
+
+        // Hide dialog after delay and pick next word
+        setTimeout(
+            () => {
+                showDialog = false;
+                if (isAnswerCorrect && currentWord) {
+                    currentWord.hints -= 2;
+                    if (currentWord.hints < 0) {
+                        progress++;
+                    } else progress += 2;
+                }
+                pickWord();
+            },
+            isAnswerCorrect ? 1000 : 2000,
+        );
+    }
+
+    /**
+     * Go back to deck view
+     */
+    function goBackToDeck() {
+        goto(`/deck/${deckId}`);
+    }
+
+    /**
+     * Restart learn mode
+     */
+    function restartLearnMode() {
+        // Reset state
+        words = cards.map((/** @type {Card} */ card) => {
+            return {
+                term: card.term,
+                definition: card.definition,
+                hints: card.term.length,
+            };
+        });
+        isComplete = false;
+        currentWord = null;
+
+        // Pick first word
+        pickWord();
     }
 </script>
 
@@ -44,26 +131,64 @@
             Type the word that matches the definition below.
         </p>
 
-        <div class="definition-box">
-            <p>{sampleDefinition}</p>
-        </div>
+        {#if isComplete}
+            <div
+                class="completion-screen"
+                transition:fly={{ y: 20, duration: 300 }}
+            >
+                <h2>Success! 🎉</h2>
+                <p>You've completed all the cards in this deck!</p>
+                <div class="completion-buttons">
+                    <button class="restart-button" onclick={restartLearnMode}>
+                        Learn Again
+                    </button>
+                    <button class="back-button" onclick={goBackToDeck}>
+                        Back to Deck
+                    </button>
+                </div>
+            </div>
+        {:else if currentWord}
+            <div class="card-container">
+                <div class="progress-container">
+                    <div
+                        class="progress-bar"
+                        style="width: {(progress / totalHints) * 100}%"
+                    ></div>
+                </div>
 
-        <TextInput
-            term={sampleTerm}
-            hints={3}
-            disabled={showResult}
-            on:complete={handleComplete}
-        />
+                <div class="definition-box">
+                    <h2>Definition:</h2>
+                    <p>{currentWord.definition}</p>
+                </div>
 
-        {#if showResult}
-            <div class="result {isCorrect ? 'correct' : 'incorrect'}">
-                {#if isCorrect}
-                    <p>Correct! Well done!</p>
-                {:else}
-                    <p>The correct answer was: <strong>{sampleTerm}</strong></p>
+                <div class="input-section">
+                    <h3>What is the term?</h3>
+                    <TextInput
+                        term={currentWord.term}
+                        hints={currentWord.hints}
+                        disabled={showDialog}
+                        onsubmit={handleSubmit}
+                    />
+                </div>
+
+                {#if showDialog}
+                    <div
+                        class="result-dialog {isCorrect
+                            ? 'correct'
+                            : 'incorrect'}"
+                        transition:fade
+                    >
+                        {#if isCorrect}
+                            <p>Correct! 🎉</p>
+                        {:else}
+                            <p>
+                                Incorrect. The term is: <strong
+                                    >{currentWord.term}</strong
+                                >
+                            </p>
+                        {/if}
+                    </div>
                 {/if}
-                <button class="next-button" onclick={nextCard}>Next Card</button
-                >
             </div>
         {/if}
     </div>
@@ -84,62 +209,168 @@
     }
 
     h1 {
-        font-size: 2.2rem;
+        font-size: 2rem;
         margin-bottom: 10px;
-    }
-
-    .instructions {
-        color: #666;
-        margin-bottom: 30px;
         text-align: center;
     }
 
-    .definition-box {
+    .card-container {
         width: 100%;
         max-width: 600px;
-        padding: 30px;
-        border: 1px solid #ddd;
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+    }
+
+    .progress-container {
+        width: 100%;
+        height: 4px;
+        background-color: #eee;
+        border-radius: 2px;
+        overflow: hidden;
+        margin-bottom: 8px;
+    }
+
+    .progress-bar {
+        height: 100%;
+        background-color: #4caf50;
+        transition: width 0.3s ease;
+    }
+
+    .definition-box {
+        background-color: #f8f8f8;
+        border: 1px solid #eee;
         border-radius: 10px;
-        background-color: #f9f9f9;
-        margin-bottom: 30px;
+        padding: 30px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .definition-box h2 {
+        font-size: 1.3rem;
+        margin-bottom: 15px;
+        color: #333;
     }
 
     .definition-box p {
         font-size: 1.2rem;
         line-height: 1.5;
-        margin: 0;
+        color: #444;
     }
 
-    .result {
-        margin-top: 20px;
-        padding: 15px 20px;
-        border-radius: 8px;
+    .input-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .input-section h3 {
+        font-size: 1.2rem;
+        color: #555;
+    }
+
+    .result-dialog {
         text-align: center;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 10px;
+        font-size: 1.1rem;
+        font-weight: 500;
     }
 
-    .result.correct {
+    .result-dialog.correct {
         background-color: #e8f5e9;
+        color: #2e7d32;
+        border: 1px solid #a5d6a7;
+    }
+
+    .result-dialog.incorrect {
+        background-color: #ffebee;
+        color: #c62828;
+        border: 1px solid #ef9a9a;
+    }
+
+    .completion-screen {
+        text-align: center;
+        padding: 40px;
+        background-color: #f8f8f8;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        max-width: 500px;
+    }
+
+    .completion-screen h2 {
+        font-size: 2rem;
+        margin-bottom: 15px;
         color: #2e7d32;
     }
 
-    .result.incorrect {
-        background-color: #ffebee;
-        color: #c62828;
+    .completion-screen p {
+        font-size: 1.2rem;
+        color: #555;
+        margin-bottom: 30px;
     }
 
-    .next-button {
-        margin-top: 15px;
+    .completion-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+    }
+
+    .restart-button,
+    .back-button {
         padding: 10px 20px;
-        background-color: #000;
-        color: #fff;
-        border: none;
-        border-radius: 4px;
+        border-radius: 6px;
         font-size: 1rem;
+        font-weight: 500;
         cursor: pointer;
-        transition: background-color 0.2s;
+        transition: all 0.2s ease;
     }
 
-    .next-button:hover {
-        background-color: #333;
+    .restart-button {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+        border: 2px solid #4caf50;
+    }
+
+    .restart-button:hover {
+        background-color: #b7d6b8;
+        border-color: #2e7d32;
+        transform: translateY(-2px);
+    }
+
+    .back-button {
+        background-color: #f5f5f5;
+        color: #555;
+        border: 2px solid #ddd;
+    }
+
+    .back-button:hover {
+        background-color: #e0e0e0;
+        border-color: #bbb;
+        transform: translateY(-2px);
+    }
+
+    .restart-button:active,
+    .back-button:active {
+        transform: translateY(2px);
+    }
+
+    @media (max-width: 768px) {
+        .definition-box {
+            padding: 20px;
+        }
+
+        .definition-box h2 {
+            font-size: 1.2rem;
+        }
+
+        .definition-box p {
+            font-size: 1.1rem;
+        }
+
+        .completion-buttons {
+            flex-direction: column;
+        }
     }
 </style>
