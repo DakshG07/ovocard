@@ -108,24 +108,32 @@
 
 <svelte:window onkeydown={handleGlobalKeydown} onkeyup={handleGlobalKeyup} />
 
-<div class="text-input-container">
-    {#each boxes as box, i}
+<div class="text-input-wrapper">
+    {#key term}
         <div
-            class="input-box {box.hint ? 'hint' : ''} {box.value
-                ? 'complete'
-                : ''} {isComplete ? 'finished' : ''}"
+            class="text-input-container"
+            in:fly={{ x: 40 * term.length }}
+            out:fly={{ x: -40 * term.length }}
         >
-            <input
-                type="text"
-                maxlength="1"
-                value={box.value}
-                placeholder={box.hint}
-                onkeydown={(e) => handleKeydown(e, i)}
-                data-index={i}
-                class="letter-input"
-            />
+            {#each boxes as box, i}
+                <div
+                    class="input-box {box.hint ? 'hint' : ''} {box.value
+                        ? 'complete'
+                        : ''} {isComplete ? 'finished' : ''}"
+                >
+                    <input
+                        type="text"
+                        maxlength="1"
+                        value={box.value}
+                        placeholder={box.hint}
+                        onkeydown={(e) => handleKeydown(e, i)}
+                        data-index={i}
+                        class="letter-input"
+                    />
+                </div>
+            {/each}
         </div>
-    {/each}
+    {/key}
 </div>
 
 {#if isComplete}
@@ -158,6 +166,12 @@
         margin: 20px 0;
         width: 100%;
         max-width: 100%;
+        grid-area: 1 / 1;
+    }
+
+    .text-input-wrapper {
+        display: grid;
+        place-items: start;
     }
 
     .input-box {
