@@ -409,30 +409,39 @@
     }
 
     .deck-header {
+        background-color: white;
+        border: 1px solid #eee;
+        border-radius: 8px;
+        padding: 20px;
         margin-bottom: 40px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
     .deck-header h1 {
-        font-size: 2.2rem;
-        margin-bottom: 10px;
+        font-size: 1.2rem;
+        margin: 0 0 10px 0;
+        word-break: break-word;
     }
 
     .deck-description {
-        color: #555;
-        margin-bottom: 20px;
+        color: #666;
+        font-size: 0.9rem;
+        margin-bottom: 15px;
     }
 
     .deck-date {
-        color: #777;
-        font-size: 0.9rem;
+        color: #999;
+        font-size: 0.8rem;
     }
 
     .deck-meta {
         display: flex;
-        gap: 20px;
-        margin-bottom: 30px;
-        color: #666;
-        font-size: 0.9rem;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.8rem;
+        margin-top: auto;
+        flex-wrap: wrap;
+        gap: 5px;
     }
 
     .empty-state {
@@ -645,6 +654,17 @@
         margin-top: 30px;
     }
 
+    .edit-button {
+        background-color: transparent;
+        color: #000;
+        border: 1px solid #000;
+        padding: 4px 8px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 0.8rem;
+        transition: all 0.2s ease;
+    }
+
     .edit-button:hover {
         background-color: #000;
         color: #fff;
@@ -705,16 +725,5 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 10px;
-    }
-
-    .edit-button {
-        background-color: transparent;
-        color: #000;
-        border: 1px solid #000;
-        padding: 8px 16px;
-        border-radius: 4px;
-        text-decoration: none;
-        font-size: 0.9rem;
-        transition: all 0.2s ease;
     }
 </style>

@@ -152,9 +152,12 @@
 <style>
     .text-input-container {
         display: flex;
+        flex-wrap: wrap;
         gap: 8px;
         justify-content: center;
         margin: 20px 0;
+        width: 100%;
+        max-width: 100%;
     }
 
     .input-box {
@@ -167,6 +170,7 @@
         justify-content: center;
         background-color: white;
         transition: transform 0.1s ease;
+        flex-shrink: 0;
     }
 
     .input-box.hint {
@@ -239,5 +243,13 @@
         font-size: 0.8rem;
         color: #666;
         margin-top: 5px;
+    }
+
+    @media (max-width: 768px) {
+        .input-box {
+            width: 35px;
+            height: 35px;
+            border-width: 1.5px;
+        }
     }
 </style>

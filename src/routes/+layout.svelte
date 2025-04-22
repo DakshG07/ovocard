@@ -18,7 +18,7 @@
     <div class="nav-container">
         <div class="logo"><a href="/">ovocard.</a></div>
         <div class="nav-links">
-            <a href="/">Home</a>
+            <a href="/decks">All Decks</a>
             {#if isAuthenticated === null}{:else if isAuthenticated}
                 <a
                     onclick={async (e) => {
@@ -105,7 +105,7 @@
         text-decoration: none;
         color: black;
     }
-    
+
     .content-wrapper {
         padding-top: 50px;
     }
