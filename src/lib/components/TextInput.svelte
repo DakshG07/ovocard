@@ -81,7 +81,7 @@
     function handleGlobalKeydown(event) {
         if (event.key === "Enter" && isComplete) {
             buttonActive = true;
-        } else if (/^[a-zA-Z]$/.test(event.key)) {
+        } else if (/^[a-zA-Z]/.test(event.key)) {
             if (
                 !document.activeElement ||
                 !document.activeElement.matches(".letter-input")
@@ -111,56 +111,63 @@
 <div class="text-input-wrapper">
     {#key term}
         <div
-            class="text-input-container"
+            class="component-wrapper"
             in:fly={{ x: 40 * term.length }}
             out:fly={{ x: -40 * term.length }}
         >
-            {#each boxes as box, i}
+            <div class="text-input-container">
+                {#each boxes as box, i}
+                    <div
+                        class="input-box {box.hint ? 'hint' : ''} {box.value
+                            ? 'complete'
+                            : ''} {isComplete ? 'finished' : ''}"
+                    >
+                        <input
+                            type="text"
+                            maxlength="1"
+                            value={box.value}
+                            placeholder={box.hint}
+                            onkeydown={(e) => handleKeydown(e, i)}
+                            data-index={i}
+                            class="letter-input"
+                        />
+                    </div>
+                {/each}
+            </div>
+
+            {#if isComplete}
                 <div
-                    class="input-box {box.hint ? 'hint' : ''} {box.value
-                        ? 'complete'
-                        : ''} {isComplete ? 'finished' : ''}"
+                    class="submit-container"
+                    transition:fly={{
+                        duration: 200,
+                        y: 20,
+                        easing: (t) => --t * t * t + 1,
+                    }}
                 >
-                    <input
-                        type="text"
-                        maxlength="1"
-                        value={box.value}
-                        placeholder={box.hint}
-                        onkeydown={(e) => handleKeydown(e, i)}
-                        data-index={i}
-                        class="letter-input"
-                    />
+                    <button
+                        class="submit-button {buttonActive ? 'active' : ''}"
+                        onclick={submit}
+                    >
+                        Submit
+                    </button>
+                    <div class="submit-hint">(or press enter)</div>
                 </div>
-            {/each}
+            {/if}
+
+            <input class="dummy" style="opacity: 0;" />
         </div>
     {/key}
 </div>
 
-{#if isComplete}
-    <div
-        class="submit-container"
-        in:fly={{
-            duration: 200,
-            y: 20,
-            easing: (t) => --t * t * t + 1,
-        }}
-        out:fly={{
-            x: -40 * term.length,
-        }}
-    >
-        <button
-            class="submit-button {buttonActive ? 'active' : ''}"
-            onclick={submit}
-        >
-            Submit
-        </button>
-        <div class="submit-hint">(or press enter)</div>
-    </div>
-{/if}
-
-<input class="dummy" style="opacity: 0;" />
-
 <style>
+    .component-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        grid-area: 1 / 1;
+    }
+
     .text-input-container {
         display: flex;
         flex-wrap: wrap;
@@ -169,7 +176,6 @@
         margin: 20px 0;
         width: 100%;
         max-width: 100%;
-        grid-area: 1 / 1;
     }
 
     .text-input-wrapper {
