@@ -4,23 +4,26 @@
     import { goto } from "$app/navigation";
     import TextInput from "$lib/components/TextInput.svelte";
     import { fade, fly } from "svelte/transition";
+    import { getDeck } from "$lib/db";
 
     /** @typedef {import("$lib/types").Card} Card */
+    /** @typedef {import("$lib/types").Deck} Deck */
     /** @typedef {{ term: string, definition: string, hints: number }} Word */
 
-    let { deck, cards, deckId } = page.data;
+    const deckId = page.params.id;
+    /** @type {Deck | null} */
+    let deck = $state(null);
+    /** @type {Card[] | null} */
+    let cards = $state(null);
+    /** @type {unknown | null} */
+    let serverError = $state(null);
+
+    // Loading state
+    let loading = $state(true);
 
     // Learn mode state
     /** @type {Word[]} */
-    let words = $state(
-        cards.map((/** @type {Card} */ card) => {
-            return {
-                term: card.term,
-                definition: card.definition,
-                hints: card.term.length,
-            };
-        }),
-    );
+    let words = $state([]);
     /** @type {Word|null} */
     let currentWord = $state(null);
     let isCorrect = $state(false);
@@ -30,16 +33,31 @@
     /** @type {number} */
     let progress = $state(0);
     /** @type {number} */
-    const totalHints = cards.reduce(
-        (/** @type {number} */ sum, /** @type {Card} */ card) =>
-            sum + card.term.length,
-        0,
-    );
+    const totalHints = $derived.by(() => {
+        if (!cards) return 0;
+        return cards.reduce(
+            (/** @type {number} */ sum, /** @type {Card} */ card) =>
+                sum + card.term.length,
+            0,
+        );
+    });
 
-    onMount(() => {
-        console.log(totalHints);
-        // Pick first word
-        pickWord();
+    onMount(async () => {
+        ({ deck, cards, error: serverError } = await getDeck(deckId));
+        if (!deck || !cards || serverError) {
+            goto("/404");
+            return;
+        } else {
+            loading = false;
+            words = cards.map((/** @type {Card} */ card) => {
+                return {
+                    term: card.term,
+                    definition: card.definition,
+                    hints: card.term.length,
+                };
+            });
+            pickWord();
+        }
     });
 
     $inspect(progress);
@@ -72,7 +90,6 @@
      */
     function handleSubmit(word) {
         if (!currentWord) return;
-        console.log(word);
 
         const isAnswerCorrect =
             word.toLowerCase() === currentWord.term.toLowerCase();
@@ -108,90 +125,90 @@
      * Restart learn mode
      */
     function restartLearnMode() {
-        // Reset state
-        words = cards.map((/** @type {Card} */ card) => {
-            return {
-                term: card.term,
-                definition: card.definition,
-                hints: card.term.length,
-            };
-        });
-        isComplete = false;
-        currentWord = null;
-
-        // Pick first word
-        pickWord();
+        window.location.reload();
     }
+
+    $inspect(words);
 </script>
 
 <main>
-    <div class="learn-container">
-        <h1>Learn Mode</h1>
-        <p class="instructions">
-            Type the word that matches the definition below.
-        </p>
+    {#if loading}
+        <div class="loading-screen">
+            <div class="loading-spinner"></div>
+            <p>Loading...</p>
+        </div>
+    {:else}
+        <div class="learn-container">
+            <h1>Learn Mode</h1>
+            <p class="instructions">
+                Type the word that matches the definition below.
+            </p>
 
-        {#if isComplete}
-            <div
-                class="completion-screen"
-                transition:fly={{ y: 20, duration: 300 }}
-            >
-                <h2>Success! 🎉</h2>
-                <p>You've completed all the cards in this deck!</p>
-                <div class="completion-buttons">
-                    <button class="restart-button" onclick={restartLearnMode}>
-                        Learn Again
-                    </button>
-                    <button class="back-button" onclick={goBackToDeck}>
-                        Back to Deck
-                    </button>
-                </div>
-            </div>
-        {:else if currentWord}
-            <div class="card-container">
-                <div class="progress-container">
-                    <div
-                        class="progress-bar"
-                        style="width: {(progress / totalHints) * 100}%"
-                    ></div>
-                </div>
-
-                <div class="definition-box">
-                    <h2>Definition:</h2>
-                    <p>{currentWord.definition}</p>
-                </div>
-
-                <div class="input-section">
-                    <h3>What is the term?</h3>
-                    <TextInput
-                        term={currentWord.term}
-                        hints={currentWord.hints}
-                        disabled={showDialog}
-                        onsubmit={handleSubmit}
-                    />
-                </div>
-
-                {#if showDialog}
-                    <div
-                        class="result-dialog {isCorrect
-                            ? 'correct'
-                            : 'incorrect'}"
-                        transition:fade
-                    >
-                        {#if isCorrect}
-                            <p>Correct! 🎉</p>
-                        {:else}
-                            <p>
-                                Incorrect. The term is: <strong
-                                    >{currentWord.term}</strong
-                                >
-                            </p>
-                        {/if}
+            {#if isComplete}
+                <div
+                    class="completion-screen"
+                    transition:fly={{ y: 20, duration: 300 }}
+                >
+                    <h2>Success! 🎉</h2>
+                    <p>You've completed all the cards in this deck!</p>
+                    <div class="completion-buttons">
+                        <button
+                            class="restart-button"
+                            onclick={restartLearnMode}
+                        >
+                            Learn Again
+                        </button>
+                        <button class="back-button" onclick={goBackToDeck}>
+                            Back to Deck
+                        </button>
                     </div>
-                {/if}
-            </div>
-        {/if}
-    </div>
+                </div>
+            {:else if currentWord}
+                <div class="card-container">
+                    <div class="progress-container">
+                        <div
+                            class="progress-bar"
+                            style="width: {(progress / totalHints) * 100}%"
+                        ></div>
+                    </div>
+
+                    <div class="definition-box">
+                        <h2>Definition:</h2>
+                        <p>{currentWord.definition}</p>
+                    </div>
+
+                    <div class="input-section">
+                        <h3>What is the term?</h3>
+                        <TextInput
+                            term={currentWord.term}
+                            hints={currentWord.hints}
+                            disabled={showDialog}
+                            onsubmit={handleSubmit}
+                        />
+                    </div>
+
+                    {#if showDialog}
+                        <div
+                            class="result-dialog {isCorrect
+                                ? 'correct'
+                                : 'incorrect'}"
+                            transition:fade
+                        >
+                            {#if isCorrect}
+                                <p>Correct! 🎉</p>
+                            {:else}
+                                <p>
+                                    Incorrect. The term is: <strong
+                                        >{currentWord.term}</strong
+                                    >
+                                </p>
+                            {/if}
+                        </div>
+                    {/if}
+                </div>
+            {/if}
+        </div>
+    {/if}
 </main>
 
 <style>
@@ -372,5 +389,37 @@
         .completion-buttons {
             flex-direction: column;
         }
+    }
+
+    .loading-screen {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 300px;
+        gap: 20px;
+    }
+
+    .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #4caf50;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    .loading-screen p {
+        color: #666;
+        font-size: 1.1rem;
     }
 </style>

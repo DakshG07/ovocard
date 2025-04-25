@@ -5,15 +5,20 @@
     import { goto } from "$app/navigation";
     import { supabase } from "$lib/supabase";
     import { formatRelativeDate } from "$lib/utils";
+    import { getDeck } from "$lib/db";
 
     /** @typedef {import('$lib/types').Deck} Deck */
     /** @typedef {import('$lib/types').Card} Card */
 
-    // Get data from the page store
-    let { deck, cards, deckId } = page.data;
+    const deckId = page.params.id;
+    /** @type {Deck | null} */
+    let deck = $state(null);
+    /** @type {Card[] | null} */
+    let cards = $state(null);
+    /** @type {unknown | null} */
+    let serverError = $state(null);
 
-    // Deck data
-    let loading = $state(false);
+    let loading = $state(true);
     let error = $state("");
     let isOwner = $state(false);
 
@@ -35,11 +40,26 @@
     let cardContainer = $state(null);
 
     // Format creation date
-    let formattedDate = formatRelativeDate(deck.created_at);
+    //let formattedDate = formatRelativeDate(deck.created_at);
+    let formattedDate = "Created a while ago"; // Random filler for now
+
+    $inspect(serverError);
+
+    async function setup() {
+        ({ deck, cards, error: serverError } = await getDeck(deckId));
+        if (!deck || !cards || serverError) {
+            // redirect to 404
+            goto("/404");
+            return;
+        } else {
+            flippedStates = new Array(cards.length).fill(false);
+            checkAuth();
+            loading = false;
+        }
+    }
 
     onMount(() => {
-        // Initialize flipped states
-        flippedStates = new Array(cards.length).fill(false);
+        setup();
 
         // Get initial window width
         const updateWindowWidth = () => {
@@ -63,6 +83,7 @@
 
     // Handle authentication check separately
     async function checkAuth() {
+        if (!deck) return;
         // Check if user owns the deck
         const {
             data: { user },
@@ -83,6 +104,7 @@
      * Moves to the next card
      */
     function nextCard() {
+        if (!cards) return;
         let index = currentCardIndex;
         setTimeout(() => {
             flippedStates[index] = false;
@@ -99,6 +121,7 @@
      * Moves to the previous card
      */
     function prevCard() {
+        if (!cards) return;
         let index = currentCardIndex;
         setTimeout(() => {
             flippedStates[index] = false;
@@ -205,7 +228,7 @@
             <div class="loader"></div>
             <p>Loading deck...</p>
         </div>
-    {:else if error || !deck}
+    {:else if error || !deck || !cards}
         <div class="error-container">
             <h2>Error</h2>
             <p>{error}</p>
@@ -414,7 +437,9 @@
         border-radius: 8px;
         padding: 20px;
         margin-bottom: 40px;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        transition:
+            transform 0.2s ease,
+            box-shadow 0.2s ease;
     }
 
     .deck-header h1 {

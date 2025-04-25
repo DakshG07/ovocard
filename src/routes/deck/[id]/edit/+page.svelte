@@ -4,6 +4,7 @@
     import { goto } from "$app/navigation";
     import VocabularySetForm from "$lib/components/VocabularySetForm.svelte";
     import { data } from "$lib/components/VocabularySetForm.svelte.js";
+    import { getDeck } from "$lib/db";
     import { page } from "$app/state";
     import { error as errorPage } from "@sveltejs/kit";
 
@@ -13,19 +14,28 @@
     let ready = $state(false);
     /** @type {import("@supabase/supabase-js").User|null} */
     let user = null;
-    let { deck, cards, deckId, error } = page.data;
+    const deckId = page.params.id;
+    /** @type {Deck | null} */
+    let deck = $state(null);
+    /** @type {Card[] | null} */
+    let cards = $state(null);
+    /** @type {unknown | null} */
+    let serverError = $state(null);
 
     onMount(async () => {
-        if (error) console.error(error);
+        if (serverError) console.error(serverError);
         const { data: authData } = await supabase.auth.getUser();
-        if (authData && authData.user) {
+        ({ deck, cards } = await getDeck(deckId));
+        if (!deck || !cards) {
+            goto("/404");
+        } else if (authData && authData.user) {
             user = authData.user;
             // Ensure they own the deck
             if (deck.user_id !== user.id) {
                 goto("/");
             }
             data.deckName = deck.name;
-            data.deckDescription = deck.description;
+            data.deckDescription = deck.description || "";
             data.isPublic = deck.is_public;
 
             data.cards = cards.map((/** @type {Card} */ card) => ({
@@ -94,7 +104,6 @@
                 .eq("deck_id", deckId);
 
             if (deleteError) throw deleteError;
-            console.log("Cards deleted successfully");
 
             // Insert updated cards
             const newCards = data.cards.map((card, index) => ({
