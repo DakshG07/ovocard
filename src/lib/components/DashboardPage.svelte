@@ -14,7 +14,6 @@
     let loading = true;
 
     onMount(async () => {
-        console.log("dashboard");
         const { data } = await supabase.auth.getUser();
         if (data && data.user) {
             user = data.user;

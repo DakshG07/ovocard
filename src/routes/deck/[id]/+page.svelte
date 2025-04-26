@@ -1,11 +1,13 @@
 <script>
     import { onMount } from "svelte";
     import { page } from "$app/state";
-    import { slide, fade } from "svelte/transition";
     import { goto } from "$app/navigation";
     import { supabase } from "$lib/supabase";
     import { formatRelativeDate } from "$lib/utils";
-    import { getDeck } from "$lib/db";
+    import { getDeck, copyDeck, deleteDeck } from "$lib/db";
+    import LucidePencil from "~icons/lucide/pencil";
+    import LucideCopy from "~icons/lucide/copy";
+    import LucideTrash from "~icons/lucide/trash-2";
 
     /** @typedef {import('$lib/types').Deck} Deck */
     /** @typedef {import('$lib/types').Card} Card */
@@ -38,10 +40,13 @@
     let dragOffset = $state(0);
     /** @type {HTMLDivElement | null} */
     let cardContainer = $state(null);
+    let deleteConfirmed = $state(false);
 
     // Format creation date
-    //let formattedDate = formatRelativeDate(deck.created_at);
-    let formattedDate = "Created a while ago"; // Random filler for now
+    let formattedDate = $derived.by(() => {
+        if (!deck) return "";
+        return formatRelativeDate(deck.created_at);
+    });
 
     $inspect(serverError);
 
@@ -218,6 +223,27 @@
         // Reset drag offset
         dragOffset = 0;
     }
+
+    async function handleCopy() {
+        let { id, error } = await copyDeck(deckId);
+        if (error || !id) {
+            error = error || "Failed to copy deck";
+        } else {
+            window.location.href = `/deck/${id}`;
+        }
+    }
+
+    async function handleDelete() {
+        if (!deleteConfirmed) {
+            deleteConfirmed = true;
+            setTimeout(() => {
+                deleteConfirmed = false;
+            }, 1000);
+            return;
+        }
+        await deleteDeck(deckId);
+        goto("/");
+    }
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -238,12 +264,35 @@
         <div class="deck-header">
             <div class="deck-title-row">
                 <h1>{deck.name}</h1>
-                {#if isOwner}
-                    <a
-                        href="/deck/{deckId}/edit"
-                        class="edit-button desktop-only">Edit Deck</a
+                <div class="deck-actions">
+                    {#if isOwner}
+                        <a
+                            href="/deck/{deckId}/edit"
+                            class="edit-button desktop-only"
+                        >
+                            <LucidePencil width={14} height={14} />
+                            Edit
+                        </a>
+                    {/if}
+                    <button
+                        class="copy-button desktop-only"
+                        onclick={handleCopy}
                     >
-                {/if}
+                        <LucideCopy width={14} height={14} />
+                        Copy
+                    </button>
+                    {#if isOwner}
+                        <button
+                            class="delete-button desktop-only"
+                            onclick={handleDelete}
+                        >
+                            <LucideTrash width={14} height={14} />
+                            {deleteConfirmed
+                                ? "Press again to Delete"
+                                : "Delete"}
+                        </button>
+                    {/if}
+                </div>
             </div>
             <p class="deck-description">
                 {deck.description || "No description provided"}
@@ -257,12 +306,35 @@
                     >{cards.length}
                     {cards.length === 1 ? "card" : "cards"}</span
                 >
-                {#if isOwner}
-                    <a
-                        href="/deck/{deckId}/edit"
-                        class="edit-button mobile-only">Edit Deck</a
+                <div class="deck-actions">
+                    {#if isOwner}
+                        <a
+                            href="/deck/{deckId}/edit"
+                            class="edit-button mobile-only"
+                        >
+                            <LucidePencil width={14} height={14} />
+                            Edit
+                        </a>
+                    {/if}
+                    <button
+                        class="copy-button mobile-only"
+                        onclick={handleCopy}
                     >
-                {/if}
+                        <LucideCopy width={14} height={14} />
+                        Copy
+                    </button>
+                    {#if isOwner}
+                        <button
+                            class="delete-button mobile-only"
+                            onclick={handleDelete}
+                        >
+                            <LucideTrash width={14} height={14} />
+                            {deleteConfirmed
+                                ? "Press again to Delete"
+                                : "Delete"}
+                        </button>
+                    {/if}
+                </div>
             </div>
         </div>
 
@@ -679,19 +751,45 @@
         margin-top: 30px;
     }
 
-    .edit-button {
+    .deck-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .edit-button,
+    .copy-button,
+    .delete-button {
         background-color: transparent;
-        color: #000;
         border: 1px solid #000;
         padding: 4px 8px;
         border-radius: 4px;
         text-decoration: none;
         font-size: 0.8rem;
         transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        cursor: pointer;
     }
 
-    .edit-button:hover {
+    .copy-button,
+    .edit-button {
+        color: #000;
+    }
+
+    .edit-button:hover,
+    .copy-button:hover {
         background-color: #000;
+        color: #fff;
+    }
+
+    .delete-button {
+        color: #dc2626;
+        border-color: #dc2626;
+    }
+
+    .delete-button:hover {
+        background-color: #dc2626;
         color: #fff;
     }
 

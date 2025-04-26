@@ -59,7 +59,7 @@
         height: calc(100vh - 60px);
         display: flex;
         justify-content: center;
-        align-items: center;
+        margin-top: 80px;
         transition: opacity 0.5s ease;
         opacity: 0;
     }
@@ -70,7 +70,7 @@
 
     /* Remove vertical centering for mobile when authenticated */
     main.mobile {
-        align-items: flex-start;
+        margin-top: unset;
         height: auto;
         min-height: calc(100vh - 60px);
     }
