@@ -5,8 +5,10 @@
     import { setContext } from "svelte";
     import VocabularySetForm from "$lib/components/VocabularySetForm.svelte";
     import { data } from "$lib/components/VocabularySetForm.svelte.js";
+    import LucideCloudDownload from "~icons/lucide/cloud-download";
 
     let ready = $state(false);
+    let imported = $state(false);
 
     /** @type {import("@supabase/supabase-js").User|null} */
     let user = null;
@@ -15,16 +17,25 @@
         const { data: authData } = await supabase.auth.getUser();
         if (authData && authData.user) {
             user = authData.user;
-            data.deckName = "";
-            data.deckDescription = "";
-            data.isPublic = true;
-            data.isSubmitting = false;
-            data.errorMessage = "";
-            data.successMessage = "";
-            data.cards = [
-                { id: 1, term: "", definition: "" },
-                { id: 2, term: "", definition: "" },
-            ];
+
+            // Check if we're coming from the import page
+            const url = new URL(window.location.href);
+            const isImport = url.searchParams.get("import") === "true";
+            imported = isImport;
+
+            // Only initialize form data if not coming from import
+            if (!isImport) {
+                data.deckName = "";
+                data.deckDescription = "";
+                data.isPublic = true;
+                data.isSubmitting = false;
+                data.errorMessage = "";
+                data.successMessage = "";
+                data.cards = [
+                    { id: 1, term: "", definition: "" },
+                    { id: 2, term: "", definition: "" },
+                ];
+            }
             ready = true;
         } else {
             // Redirect to login if not authenticated
@@ -119,7 +130,15 @@
 <main class={ready ? "visible" : ""}>
     <div class="create-container">
         <h1>Create Vocabulary Set</h1>
-        <p>Build your custom vocabulary deck with terms and definitions.</p>
+        <div class="description-row">
+            <p>Build your custom vocabulary deck with terms and definitions.</p>
+            {#if !imported}
+                <button class="import-button" onclick={() => goto("/import")}>
+                    <LucideCloudDownload width={14} height={14} />
+                    Import
+                </button>
+            {/if}
+        </div>
 
         <VocabularySetForm
             submitButtonText="Create Deck"
@@ -156,5 +175,47 @@
         font-size: 1.1rem;
         margin-bottom: 2rem;
         color: #555;
+    }
+
+    .description-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 2rem;
+    }
+
+    .description-row p {
+        margin-bottom: 0;
+    }
+
+    .import-button {
+        background-color: transparent;
+        color: #000;
+        border: 1px solid #000;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        cursor: pointer;
+    }
+
+    .import-button:hover {
+        background-color: #000;
+        color: #fff;
+    }
+
+    @media (max-width: 768px) {
+        .description-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .description-row p {
+            margin-bottom: 0;
+        }
     }
 </style>

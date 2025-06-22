@@ -35,7 +35,7 @@
                 goto("/");
             }
             data.deckName = deck.name;
-            data.deckDescription = deck.description || "";
+            data.deckDescription = deck.description ?? "";
             data.isPublic = deck.is_public;
 
             data.cards = cards.map((/** @type {Card} */ card) => ({
