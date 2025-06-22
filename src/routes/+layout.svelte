@@ -108,5 +108,7 @@
 
     .content-wrapper {
         padding-top: 50px;
+        max-width: 100%;
+        overflow-x: hidden;
     }
 </style>
